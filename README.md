@@ -8,7 +8,7 @@ to your own list and search it by substring. One user's colors are never visible
 to another. The application is intentionally small -- the point is a complete
 path from browser to database and back, not a large feature set.
 
-Live instance: http://159.89.233.90
+Live instance: https://cop4331.lol/
 
 ## Screens
 
