@@ -1,0 +1,128 @@
+@startuml class
+!pragma layout smetana
+title COLORS Web Application - Class Diagram
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Client (browser)" {
+  class "index.html" as IndexPage <<page>> {
+    loginName : text input
+    loginPassword : password input
+    {field} loginButton : onclick = doLogin()
+    loginResult : span
+  }
+
+  class "color.html" as ColorPage <<page>> {
+    {field} body : onload = readCookie()
+    userName : span
+    {field} logoutButton : onclick = doLogout()
+    colorText : text input
+    {field} addColorButton : onclick = addColor()
+    colorAddResult : span
+    searchText : text input
+    {field} searchColorButton : onclick = searchColor()
+    colorSearchResult : span
+    colorList : p
+  }
+
+  class "code.js" as CodeJs <<script>> {
+    + urlBase : string {readOnly}
+    + extension : string = "php" {readOnly}
+    + userId : int
+    + firstName : string
+    + lastName : string
+    --
+    + doLogin() : void
+    + saveCookie() : void
+    + readCookie() : void
+    + doLogout() : void
+    + addColor() : void
+    + searchColor() : void
+  }
+
+  class "md5.js" as Md5Js <<library>> {
+    + md5(input : string) : string
+  }
+}
+
+package "Server (LAMPAPI)" {
+  class "Login.php" as LoginPhp <<endpoint>> {
+    - inData : array
+    - id : int
+    - firstName : string
+    - lastName : string
+    - conn : mysqli
+    --
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj : string) : void
+    - returnWithError(err : string) : void
+    - returnWithInfo(firstName : string, lastName : string, id : int) : void
+  }
+
+  class "AddColor.php" as AddColorPhp <<endpoint>> {
+    - inData : array
+    - conn : mysqli
+    --
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj : string) : void
+    - returnWithError(err : string) : void
+  }
+
+  class "SearchColors.php" as SearchColorsPhp <<endpoint>> {
+    - inData : array
+    - searchResults : string
+    - searchCount : int
+    - conn : mysqli
+    --
+    - getRequestInfo() : array
+    - sendResultInfoAsJson(obj : string) : void
+    - returnWithError(err : string) : void
+    - returnWithInfo(searchResults : string) : void
+  }
+}
+
+package "Database (MySQL COP4331)" {
+  class Users <<table>> {
+    + ID : INT <<PK>>
+    {field} + FirstName : VARCHAR(50)
+    {field} + LastName : VARCHAR(50)
+    {field} + Login : VARCHAR(50)
+    {field} + Password : VARCHAR(50)
+  }
+
+  class Colors <<table>> {
+    + ID : INT <<PK>>
+    {field} + Name : VARCHAR(50)
+    + UserID : INT
+  }
+}
+
+IndexPage -[hidden]right- ColorPage
+LoginPhp -[hidden]right- AddColorPhp
+AddColorPhp -[hidden]right- SearchColorsPhp
+
+IndexPage ..> CodeJs : <<loads>>
+ColorPage ..> CodeJs : <<loads>>
+IndexPage ..> Md5Js : <<loads>>
+ColorPage ..> Md5Js : <<loads>>
+CodeJs .left.> Md5Js : uses md5()
+
+CodeJs ..> LoginPhp : <<POST>>\n{login, password}
+CodeJs ..> AddColorPhp : <<POST>>\n{color, userId}
+CodeJs ..> SearchColorsPhp : <<POST>>\n{search, userId}
+
+LoginPhp ..> Users : <<SELECT>>
+AddColorPhp ..> Colors : <<INSERT>>
+SearchColorsPhp ..> Colors : <<SELECT LIKE>>
+
+Users "1" -right- "0..*" Colors : owns >
+
+note bottom of Colors
+  UserID refers to Users.ID.
+  The schema declares no
+  FOREIGN KEY constraint.
+end note
+
+note "The code is procedural: pages, scripts and\nendpoints are modeled as stereotyped classifiers.\nThere is no inheritance; each PHP endpoint\nduplicates its own helper functions." as N1
+@enduml

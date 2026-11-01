@@ -1,0 +1,54 @@
+@startuml usecase
+!pragma layout smetana
+title COLORS Web Application - Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User" as user
+
+rectangle "COLORS Web Application" {
+  usecase "Log In" as UC1
+  usecase "Add Color" as UC2
+  usecase "Search Colors" as UC3
+  usecase "Log Out" as UC4
+}
+
+user -- UC1
+user -- UC2
+user -- UC3
+user -- UC4
+
+note right of UC1
+  index.html: login name + password.
+  Password is MD5-hashed in the browser
+  and checked against the Users table.
+  On success a 20-minute cookie stores
+  firstName, lastName and userId.
+end note
+
+note right of UC2
+  Precondition: logged in (color.html
+  runs readCookie() on load and redirects
+  to index.html if no userId is found).
+  Inserts the color for the current user.
+end note
+
+note right of UC3
+  Precondition: logged in.
+  Substring match on the current user's
+  colors only; an empty search term
+  returns all of that user's colors.
+end note
+
+note right of UC4
+  Expires the session cookie and
+  returns to index.html.
+end note
+
+note bottom of user
+  Accounts already exist in the Users
+  table (inserted via SQL). The app has
+  no registration use case.
+end note
+@enduml

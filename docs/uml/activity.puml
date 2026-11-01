@@ -1,0 +1,120 @@
+@startuml activity
+title COLORS Web Application - Activity Diagram
+
+|User|
+|Browser (code.js)|
+|PHP API (LAMPAPI)|
+|MySQL|
+
+|User|
+start
+:Open index.html;
+
+repeat
+  |User|
+  :Enter login name and password;
+  :Click "Do It";
+  |Browser (code.js)|
+  :doLogin(): hash password with md5();
+  :POST {login, password: md5 hash}
+  to Login.php;
+  |PHP API (LAMPAPI)|
+  :Decode JSON request body;
+  note right
+    Every endpoint: if the database
+    connection fails, it returns
+    returnWithError(connect_error)
+    without running a query.
+  end note
+  |MySQL|
+  :SELECT ID, FirstName, LastName FROM Users
+  WHERE Login = ? AND Password = ?;
+  |PHP API (LAMPAPI)|
+  if (Matching row?) then ([yes])
+    :Return {id, firstName, lastName, error: ""};
+  else ([no])
+    :Return {id: 0, firstName: "~", lastName: "~",
+    error: "No Records Found"};
+  endif
+  |Browser (code.js)|
+  :Parse JSON response;
+  note left
+    The browser only handles a response
+    when readyState == 4 and status == 200.
+  end note
+  if (id < 1?) then ([yes])
+    :Show "User/Password combination incorrect";
+  else ([no])
+    :saveCookie(): store firstName, lastName,
+    userId in cookie (expires in 20 minutes);
+    :Redirect to color.html;
+    :readCookie() on page load
+    (redirects back to index.html
+    if the cookie has no userId);
+  endif
+  |User|
+repeat while (Logged in?) is ([no]) not ([yes])
+
+|Browser (code.js)|
+:readCookie(): show "Logged in as
+<firstName> <lastName>";
+
+|User|
+repeat
+  if (Choose action) then ([Add Color])
+    :Enter color name;
+    :Click "Add";
+    |Browser (code.js)|
+    :addColor(): POST {color, userId}
+    to AddColor.php;
+    |PHP API (LAMPAPI)|
+    :Decode JSON request body;
+    |MySQL|
+    :INSERT INTO Colors (Name, UserID)
+    VALUES (?, ?);
+    |PHP API (LAMPAPI)|
+    :Return {error: ""};
+    |Browser (code.js)|
+    :Show "Color has been added";
+    note left
+      Shown on any HTTP 200;
+      the response body is not read.
+    end note
+  else ([Search Colors])
+    |User|
+    :Enter search text (may be empty);
+    :Click "Search";
+    |Browser (code.js)|
+    :searchColor(): POST {search, userId}
+    to SearchColors.php;
+    |PHP API (LAMPAPI)|
+    :Decode JSON request body;
+    |MySQL|
+    :SELECT Name FROM Colors
+    WHERE Name LIKE ? AND UserID = ?;
+    note right
+      The LIKE parameter is bound as
+      "%" + search + "%"
+    end note
+    |PHP API (LAMPAPI)|
+    if (Any rows?) then ([yes])
+      :Return {results: [names], error: ""};
+    else ([no])
+      :Return {results: [], error: "No Records Found"};
+    endif
+    |Browser (code.js)|
+    :Show "Color(s) has/have been retrieved";
+    :Write results into the color list
+    (empty when nothing matched);
+  endif
+  |User|
+repeat while (Another action?) is ([yes]) not ([no])
+
+:Click "Log Out";
+|Browser (code.js)|
+:doLogout(): clear userId, firstName, lastName
+and expire the session cookie;
+:Redirect to index.html;
+|User|
+stop
+@enduml
