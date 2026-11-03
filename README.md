@@ -28,6 +28,8 @@ Live instance: https://cop4331.lol/
 | Frontend   | HTML, CSS, vanilla JavaScript (`XMLHttpRequest`) |
 
 No frameworks, package managers, or build step. The files are served as-is.
+(Node.js appears only as CI lint tooling -- see [Linting](#linting) -- and is
+never needed on the server.)
 
 ## Repository layout
 
@@ -155,6 +157,27 @@ Searching with an empty field returns everything on your list.
 
 Sessions last 20 minutes, after which the cookie expires and you are returned to
 the login page.
+
+## Linting
+
+A GitHub Actions workflow (`.github/workflows/lint.yml`) runs on every push and
+pull request, with one job per linter:
+
+| Files  | Tool                                   | Config              |
+| ------ | -------------------------------------- | ------------------- |
+| HTML   | [HTMLHint](https://htmlhint.com/)      | `.htmlhintrc`       |
+| CSS    | [Stylelint](https://stylelint.io/)     | `.stylelintrc.json` |
+| JS     | [ESLint](https://eslint.org/)          | `eslint.config.js`  |
+
+To run the same checks locally (requires Node.js):
+
+```
+npm ci
+npm run lint
+```
+
+`package.json`, `package-lock.json`, and the lint configs do not need to be
+deployed to the web root.
 
 ## Credentials
 
