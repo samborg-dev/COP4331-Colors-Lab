@@ -11,3 +11,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Lint tooling (Node is used only for CI linting, never at runtime)
+node_modules/

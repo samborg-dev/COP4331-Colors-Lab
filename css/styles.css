@@ -13,14 +13,14 @@ body
 {
 	max-width: 520px;
 	margin: 0 auto;
-	background-color: rgba(0, 0, 0, 0.55);
+	background-color: rgb(0 0 0 / 55%);
 	border: 1px solid #3a4256;
 	border-radius: 8px;
 	padding: 24px;
 	line-height: 2.2;
 }
 
-#inner-title
+.inner-title
 {
 	font-size: 18px;
 	font-weight: bold;
@@ -43,7 +43,7 @@ input[type="text"], input[type="password"]
 	border: none;
 	border-radius: 4px;
 	background-color: #0069ff;
-	color: #ffffff;
+	color: #fff;
 	cursor: pointer;
 }
 

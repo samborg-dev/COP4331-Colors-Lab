@@ -1,0 +1,10 @@
+{
+  "extends": "stylelint-config-standard",
+  "ignoreFiles": ["node_modules/**"],
+  "rules": {
+    "selector-id-pattern": [
+      "^[a-z][a-zA-Z0-9]*$",
+      { "message": "Expected id selector \"%s\" to be camelCase (ids are shared with js/code.js)" }
+    ]
+  }
+}

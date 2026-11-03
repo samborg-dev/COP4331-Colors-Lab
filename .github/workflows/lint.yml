@@ -1,0 +1,35 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: ${{ matrix.linter }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Report every linter's results, even if one of them fails
+      fail-fast: false
+      matrix:
+        linter: [html, css, js]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      # Node is only used to run the linters; the app itself is plain LAMP
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install lint tools
+        run: npm ci
+
+      - name: Run ${{ matrix.linter }} linter
+        run: npm run lint:${{ matrix.linter }}
