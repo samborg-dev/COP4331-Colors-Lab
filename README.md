@@ -28,8 +28,8 @@ Live instance: https://cop4331.lol/
 | Frontend   | HTML, CSS, vanilla JavaScript (`XMLHttpRequest`) |
 
 No frameworks, package managers, or build step. The files are served as-is.
-(Node.js appears only as CI lint tooling -- see [Linting](#linting) -- and is
-never needed on the server.)
+(Node.js appears only as CI lint and test tooling -- see [Linting](#linting) and
+[Tests](#tests) -- and is never needed on the server.)
 
 ## Repository layout
 
@@ -160,8 +160,8 @@ the login page.
 
 ## Linting
 
-A GitHub Actions workflow (`.github/workflows/lint.yml`) runs on every push and
-pull request, with one job per linter:
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and
+pull request. It has one job per linter, plus the [tests](#tests):
 
 | Files  | Tool                                   | Config              |
 | ------ | -------------------------------------- | ------------------- |
@@ -176,8 +176,38 @@ npm ci
 npm run lint
 ```
 
-`package.json`, `package-lock.json`, and the lint configs do not need to be
-deployed to the web root.
+## Tests
+
+Tests use [Jest](https://jestjs.io/) and live in `tests/`. Both suites run in CI
+on every push and pull request.
+
+- **Unit tests** (`tests/unit/`) run `js/code.js` against the real `index.html`
+  and `color.html` markup in a simulated browser DOM (jsdom). They check what
+  each function sends to the API (including that the password is MD5-hashed),
+  how responses update the page, and the login cookie round trip. The network
+  and page redirects are faked, so these need nothing but Node.
+
+  ```
+  npm run test:unit
+  ```
+
+- **Integration tests** (`tests/integration/`) send real HTTP requests to the
+  PHP endpoints, backed by a real MySQL database loaded from
+  `tests/integration/seed.sql`. They check status, content type, and the exact
+  JSON returned by each endpoint, including that users cannot see each other's
+  colors. In CI the workflow starts MySQL, loads the seed data, fills in the
+  database credentials (as in [setup step 4](#setup)), and serves the repo with
+  PHP's built-in web server. To run them locally, do the same, then:
+
+  ```
+  API_URL=http://127.0.0.1:8000/LAMPAPI npm run test:integration
+  ```
+
+Node only runs the test tools; the application under test is the same PHP and
+browser JavaScript that Apache serves.
+
+`package.json`, `package-lock.json`, `jest.config.js`, `tests/`, and the lint
+configs do not need to be deployed to the web root.
 
 ## Credentials
 
@@ -211,7 +241,7 @@ production:
 - **JSON responses are assembled by string concatenation** rather than
   `json_encode`, so a color name containing a quote or a backslash produces a
   malformed response.
-- **No automated tests**, and no validation on color names or lengths.
+- **No validation on color names or lengths.**
 
 These are known and left in place: the assignment is about getting a LAMP stack
 working end to end, not about hardening it.

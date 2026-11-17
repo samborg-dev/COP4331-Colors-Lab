@@ -1,18 +1,23 @@
 {
   "name": "cop4331-colors-lab",
   "private": true,
-  "description": "Lint tooling only. The app itself is served as-is by Apache (LAMP); Node is not used at runtime.",
+  "description": "Lint and test tooling only. The app itself is served as-is by Apache (LAMP); Node is not used at runtime.",
   "scripts": {
     "lint": "npm run lint:html && npm run lint:css && npm run lint:js",
     "lint:html": "htmlhint \"**/*.html\"",
     "lint:css": "stylelint \"**/*.css\"",
-    "lint:js": "eslint ."
+    "lint:js": "eslint .",
+    "test": "jest",
+    "test:unit": "jest --selectProjects unit",
+    "test:integration": "jest --selectProjects integration --runInBand"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "htmlhint": "^1.9.2",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
     "stylelint": "^18.0.0",
     "stylelint-config-standard": "^41.0.0"
   }
