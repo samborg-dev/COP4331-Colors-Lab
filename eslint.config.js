@@ -34,10 +34,26 @@ module.exports = [
 		}
 	},
 	{
-		files: ["eslint.config.js"],
+		files: ["eslint.config.js", "jest.config.js"],
 		languageOptions: {
 			sourceType: "commonjs",
 			globals: globals.node
+		}
+	},
+	{
+		files: ["tests/**/*.js"],
+		languageOptions: {
+			sourceType: "commonjs",
+			globals: {
+				...globals.node,
+				...globals.jest,
+				// Unit tests run in jsdom, which provides the browser's document
+				document: "readonly"
+			}
+		},
+		rules: {
+			"eqeqeq": "error",
+			"semi": "error"
 		}
 	}
 ];

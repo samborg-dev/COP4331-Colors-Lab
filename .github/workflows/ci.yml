@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (${{ matrix.linter }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Report every linter's results, even if one of them fails
+      fail-fast: false
+      matrix:
+        linter: [html, css, js]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      # Node is only used to run the linters and tests; the app itself is plain LAMP
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install lint and test tools
+        run: npm ci
+
+      - name: Run ${{ matrix.linter }} linter
+        run: npm run lint:${{ matrix.linter }}
+
+  unit-tests:
+    name: unit tests (front end)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install lint and test tools
+        run: npm ci
+
+      # Runs js/code.js against a simulated browser DOM (jsdom)
+      - name: Run unit tests
+        run: npm run test:unit
+
+  integration-tests:
+    name: integration tests (PHP API + MySQL)
+    runs-on: ubuntu-latest
+    env:
+      # Throwaway credentials for the CI database only
+      DB_NAME: COP4331
+      DB_USER: colors_ci
+      DB_PASSWORD: colors_ci_password
+      API_URL: http://127.0.0.1:8000/LAMPAPI
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install lint and test tools
+        run: npm ci
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli
+          # The endpoints connect to "localhost", which mysqli reaches over this socket
+          ini-values: mysqli.default_socket=/var/run/mysqld/mysqld.sock
+          coverage: none
+
+      # MySQL 8 comes preinstalled on the runner (user root, password root) but is stopped
+      - name: Start MySQL
+        run: sudo systemctl start mysql.service
+
+      - name: Create database, tables, and test data
+        run: |
+          mysql -uroot -proot < tests/integration/seed.sql
+          mysql -uroot -proot -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD'; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+
+      # Same as step 4 of the README's server setup: replace the committed placeholder
+      # credentials. This only changes the runner's checkout, never the repository.
+      - name: Point the API at the test database
+        run: |
+          sed -i "s/new mysqli(\"localhost\", \"username\", \"password\", \"database\")/new mysqli(\"localhost\", \"$DB_USER\", \"$DB_PASSWORD\", \"$DB_NAME\")/" LAMPAPI/*.php
+          if grep -n '"username", "password", "database"' LAMPAPI/*.php; then
+            echo "::error::Placeholder credentials were not replaced in the files above"
+            exit 1
+          fi
+
+      # PHP's built-in web server stands in for Apache, serving the repo as the web root
+      - name: Start PHP server
+        run: |
+          php -S 127.0.0.1:8000 -t . > php-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -s -o /dev/null http://127.0.0.1:8000/index.html && exit 0
+            sleep 0.5
+          done
+          echo "::error::PHP server did not start"
+          cat php-server.log
+          exit 1
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Show PHP server log
+        if: failure()
+        run: cat php-server.log
